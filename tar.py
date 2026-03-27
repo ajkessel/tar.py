@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import sys
 import tarfile
 import gzip
@@ -10,7 +10,7 @@ executableFiles = set()
 
 def isExecutable(f):
     bin = open(f, mode='rb')
-    buf = [ord(elem) for elem in bin.read(4)] + [0] * 4
+    buf = list(bin.read(4)) + [0] * 4
     bin.close()
     
     # with thanks to fasterthanlime / itch.io
@@ -57,13 +57,13 @@ def processFile(tar):
         message = message + "folder "
     message = message + "'" + f + "'"
     
-    print message
+    print(message)
     
     if isExec or tar.isdir():
-        tar.mode = 0755
+        tar.mode |= 0o111   # Bitwise OR to add execute for user, group, and world
     else:
-        tar.mode = 0644
-    
+        tar.mode &= ~0o111  # Bitwise AND to strip execute for user, group, and world
+        tar.mode |= 0o644   # Ensure at minimum rw-r--r--
     return tar
     
 args = sys.argv
@@ -76,20 +76,20 @@ for i in reversed(range(1, len(args))):
         break
 
 if len(args) <= 1:
-  print "Usage: tar.py [out] [file1] [file2] ... [fileN]"
-  print "Do not add extension to out file"
-  print "Add +x at the end of a file to set executable bit"
-  print "Directories are added recursively, files already added are skipped"
-  print "Options:"
-  print "  -autoexec    Detect and set executable file permissions automatically"
+  print("Usage: tar.py [out] [file1] [file2] ... [fileN]")
+  print("Do not add extension to out file")
+  print("Add +x at the end of a file to set executable bit")
+  print("Directories are added recursively, files already added are skipped")
+  print("Options:")
+  print("  -autoexec    Detect and set executable file permissions automatically")
   quit()
 
 if autoExec:
-    print "Automatically detecting executables"
+    print("Automatically detecting executables")  # 3. print() function
 
 outFile = args[1]
 
-print 'Creating tar archive'
+print('Creating tar archive')
 out = tarfile.open(outFile + ".tar", mode='w')
         
 for i in range(2, len(args)):
@@ -100,21 +100,21 @@ for i in range(2, len(args)):
         isExec = True
         executableFiles.add(arg)
     out.add(arg, filter=processFile)
-    
+
 out.close()
 
-print 'Gzipping archive'
+print('Gzipping archive')
 inFile = open(outFile + ".tar", mode='rb')
-out = gzip.open(outFile + ".tar.gz", mode='w')
+out = gzip.open(outFile + ".tar.gz", mode='wb')
 
 blockSize = 2048
-for chunk in iter(partial(inFile.read, blockSize), ''):
+for chunk in iter(partial(inFile.read, blockSize), b''):
     out.write(chunk)
 
 out.close()
 inFile.close()
 
-print "Removing tar file"
+print("Removing tar file")
 os.remove(outFile + ".tar")
 
-print "Done"
+print("Done")
